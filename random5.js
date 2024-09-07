@@ -1,111 +1,92 @@
-let currentTurn = 0; // 0 for white, 1 for black
-let probabilities = Array.from({ length: 10 }, () => Array(10).fill(0)); // Probabilities for cells
+const boardSize = 10;
+let board = [];
+let currentTurn = 0; // 0: white, 1: black
 
+// Initialize the board
 function initBoard() {
-    const board = document.getElementById('board');
-    for (let i = 0; i < 10; i++) {
-        for (let j = 0; j < 10; j++) {
+    const boardElement = document.getElementById('board');
+    boardElement.innerHTML = '';
+
+    for (let i = 0; i < boardSize; i++) {
+        board[i] = [];
+        for (let j = 0; j < boardSize; j++) {
+            board[i][j] = { percent: -1, OI: -1 };
             const cell = document.createElement('div');
             cell.className = 'cell empty';
-            cell.dataset.row = i;
-            cell.dataset.col = j;
-            cell.addEventListener('click', handleClick);
-            board.appendChild(cell);
-            updateProbabilityDisplay(i, j); // Display initial probabilities
+            cell.id = `cell-${i}-${j}`;
+            cell.addEventListener('click', () => handleClick(i, j));
+            boardElement.appendChild(cell);
         }
     }
-    updateTurnIndicator(); // Initialize turn indicator
+    updateBoard();
+    updateTurnIndicator();
 }
 
-function updateProbabilityDisplay(row, col) {
-    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-    cell.textContent = `${Math.round(probabilities[row][col])}%`;
+// Update the board display
+function updateBoard() {
+    for (let i = 0; i < boardSize; i++) {
+        for (let j = 0; j < boardSize; j++) {
+            const cell = document.getElementById(`cell-${i}-${j}`);
+            if (board[i][j].OI === -1) {
+                cell.textContent = `${board[i][j].percent}%`;
+                cell.className = `cell ${currentTurn === 0 ? 'empty' : 'empty'}`;
+            } else if (board[i][j].OI === 0) {
+                cell.textContent = '';
+                cell.className = 'cell black';
+            } else if (board[i][j].OI === 1) {
+                cell.textContent = '';
+                cell.className = 'cell white';
+            }
+        }
+    }
 }
 
-function updateTurnIndicator() {
-    const turnIndicator = document.getElementById('turnIndicator');
-    turnIndicator.textContent = `Turn: ${currentTurn === 0 ? 'White' : 'Black'}`;
-}
-
-function handleClick(event) {
-    const cell = event.target;
-    const row = parseInt(cell.dataset.row);
-    const col = parseInt(cell.dataset.col);
-
-    // Check if the cell is empty
-    if (cell.classList.contains('empty')) {
-        const isWhiteTurn = currentTurn === 0;
-        const randomProbability = Math.random() * 100;
-        probabilities[row][col] = randomProbability; // Update probability
-
-        // Determine color based on probability
-        if (randomProbability < 50) {
-            cell.classList.remove('empty');
-            cell.classList.add(isWhiteTurn ? 'white' : 'black');
+// Handle cell click
+function handleClick(x, y) {
+    if (board[x][y].OI === -1) {
+        board[x][y].percent = (Math.random() * 80 + 10).toFixed(0);
+        board[x][y].OI = Math.random() * 100 < board[x][y].percent ? 1 : 0;
+        updateBoard();
+        if (checkWin(x, y)) {
+            alert(`${currentTurn === 0 ? 'White' : 'Black'} wins!`);
+            initBoard();
         } else {
-            cell.classList.remove('empty');
-            cell.classList.add(isWhiteTurn ? 'black' : 'white');
+            currentTurn = 1 - currentTurn;
+            updateTurnIndicator();
         }
-        cell.textContent = '';
-
-        // Update probability display for all cells
-        for (let i = 0; i < 10; i++) {
-            for (let j = 0; j < 10; j++) {
-                updateProbabilityDisplay(i, j);
-            }
-        }
-
-        // Toggle turn
-        currentTurn = 1 - currentTurn;
-        updateTurnIndicator(); // Update turn indicator after each move
-
-        checkWinCondition();
     }
 }
 
-function checkWinCondition() {
-    const cells = document.querySelectorAll('.cell');
-    const board = [];
-    for (let i = 0; i < 10; i++) {
-        board[i] = [];
-        for (let j = 0; j < 10; j++) {
-            const cell = cells[i * 10 + j];
-            board[i][j] = cell.classList.contains('white') ? 1 : (cell.classList.contains('black') ? 2 : 0);
-        }
-    }
+// Update turn indicator
+function updateTurnIndicator() {
+    const turnElement = document.getElementById('turnIndicator');
+    turnElement.textContent = `Current Turn: ${currentTurn === 0 ? 'White' : 'Black'}`;
+}
 
-    function isWinningLine(line) {
-        return line.every(cell => cell === line[0] && cell !== 0);
-    }
+// Check if there's a win
+function checkWin(x, y) {
+    const directions = [
+        [[0, 1], [0, -1]], // Horizontal
+        [[1, 0], [-1, 0]], // Vertical
+        [[1, 1], [-1, -1]], // Diagonal /
+        [[1, -1], [-1, 1]]  // Diagonal \
+    ];
 
-    function checkDirection(row, col, dRow, dCol) {
-        const line = [];
-        for (let k = 0; k < 5; k++) {
-            const r = row + k * dRow;
-            const c = col + k * dCol;
-            if (r < 0 || r >= 10 || c < 0 || c >= 10) return false;
-            line.push(board[r][c]);
-        }
-        return isWinningLine(line);
-    }
-
-    function checkWin() {
-        for (let i = 0; i < 10; i++) {
-            for (let j = 0; j < 10; j++) {
-                if (
-                    checkDirection(i, j, 0, 1) ||  // Horizontal
-                    checkDirection(i, j, 1, 0) ||  // Vertical
-                    checkDirection(i, j, 1, 1) ||  // Diagonal /
-                    checkDirection(i, j, 1, -1)    // Diagonal \
-                ) {
-                    alert((currentTurn === 0 ? 'White' : 'Black') + ' wins!');
-                    return;
-                }
+    for (const direction of directions) {
+        let count = 1;
+        for (const [dx, dy] of direction) {
+            let nx = x + dx;
+            let ny = y + dy;
+            while (nx >= 0 && ny >= 0 && nx < boardSize && ny < boardSize && board[nx][ny].OI === board[x][y].OI) {
+                count++;
+                if (count === 5) return true;
+                nx += dx;
+                ny += dy;
             }
         }
     }
-
-    checkWin();
+    return false;
 }
 
+// Initialize the board on page load
 window.onload = initBoard;
