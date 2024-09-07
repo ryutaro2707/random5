@@ -35,7 +35,7 @@ function handleClick(event) {
         cell.classList.remove('empty');
         cell.classList.add(playerColors[currentPlayer]);
         cell.textContent = '';  // 確率を消す
-        board[row][col] = currentPlayer;  // プレイヤーの色をボードに保存
+        board[row][col] = Math.random() * 100 < board[row][col].percent ? 1 - currentPlayer : currentPlayer;  // プレイヤーの色をボードに保存
 
         // プレイヤーのターンを切り替え
         checkWinCondition();
