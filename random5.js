@@ -38,10 +38,7 @@ function handleClick(event) {
         board[row][col] = currentPlayer;  // プレイヤーの色をボードに保存
 
         // プレイヤーのターンを切り替え
-        if (checkForWin(row, col)) {
-            setTimeout(() => alert(`${playerColors[currentPlayer]} wins!`), 0);
-            return; // 勝者が決まったらゲームを終了
-        }
+        checkWinCondition();
         currentPlayer = 1 - currentPlayer;
         updateTurnIndicator();
 
