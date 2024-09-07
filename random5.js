@@ -37,16 +37,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 cell.textContent = '';  // Remove probability display
             }
             updateProbabilities();  // Update probabilities for all cells
-            checkForWin(row, col);
+            if (checkForWin()) {
+                setTimeout(() => alert(`${currentPlayer === 1 ? 'White' : 'Black'} wins!`), 0);
+                return;
+            }
             currentPlayer = 1 - currentPlayer; // Switch player
         }
     }
 
     function updateProbabilities() {
-        // No longer needed, probabilities are now only used for determining cell state
+        // 確率の更新処理が不要なので、空のままにします
     }
 
-    function checkForWin(row, col) {
+    function checkForWin() {
         const directions = [
             { dr: 0, dc: 1 },  // horizontal
             { dr: 1, dc: 0 },  // vertical
@@ -54,33 +57,39 @@ document.addEventListener('DOMContentLoaded', (event) => {
             { dr: 1, dc: -1 }  // diagonal (down-left)
         ];
 
-        for (let { dr, dc } of directions) {
-            let count = 1;
-            for (let i = 1; i < 5; i++) {
-                const r = row + dr * i;
-                const c = col + dc * i;
-                if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
-                if (board[r][c] === currentPlayer) {
-                    count++;
-                } else {
-                    break;
+        for (let row = 0; row < boardSize; row++) {
+            for (let col = 0; col < boardSize; col++) {
+                if (board[row][col] !== -1) {
+                    for (let { dr, dc } of directions) {
+                        let count = 1;
+                        for (let i = 1; i < 5; i++) {
+                            const r = row + dr * i;
+                            const c = col + dc * i;
+                            if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
+                            if (board[r][c] === board[row][col]) {
+                                count++;
+                            } else {
+                                break;
+                            }
+                        }
+                        for (let i = 1; i < 5; i++) {
+                            const r = row - dr * i;
+                            const c = col - dc * i;
+                            if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
+                            if (board[r][c] === board[row][col]) {
+                                count++;
+                            } else {
+                                break;
+                            }
+                        }
+                        if (count >= 5) {
+                            return true; // Win condition met
+                        }
+                    }
                 }
-            }
-            for (let i = 1; i < 5; i++) {
-                const r = row - dr * i;
-                const c = col - dc * i;
-                if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
-                if (board[r][c] === currentPlayer) {
-                    count++;
-                } else {
-                    break;
-                }
-            }
-            if (count >= 5) {
-                setTimeout(() => alert(`${currentPlayer === 1 ? 'White' : 'Black'} wins!`), 0);
-                return;
             }
         }
+        return false; // No win condition met
     }
 
     initBoard();
