@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             }
             boardContainer.appendChild(rowDiv);
         }
-        updateProbabilities();
+        updateBoard(); // 初期表示時に確率を設定
     }
 
     function handleClick(row, col) {
@@ -31,22 +31,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 board[row][col] = currentPlayer;
                 cell.classList.remove('empty');
                 cell.classList.add(currentPlayer === 1 ? 'white' : 'black');
-                cell.textContent = '';  // Remove probability display
+                cell.textContent = '';  // 確率表示を消す
             } else {
+                board[row][col] = -1; // クリックしたセルが選択された場合は未設定のまま
+                cell.classList.remove('white', 'black');
                 cell.classList.add('empty');
-                cell.textContent = '';  // Remove probability display
+                cell.textContent = '';  // 確率表示を消す
             }
-            updateProbabilities();  // Update probabilities for all cells
             if (checkForWin()) {
                 setTimeout(() => alert(`${currentPlayer === 1 ? 'White' : 'Black'} wins!`), 0);
                 return;
             }
             currentPlayer = 1 - currentPlayer; // Switch player
+            updateBoard(); // 確率を再計算して更新
         }
     }
 
-    function updateProbabilities() {
-        // 確率の更新処理が不要なので、空のままにします
+    function updateBoard() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            const row = cell.dataset.row;
+            const col = cell.dataset.col;
+            if (board[row][col] === -1) {
+                const randomProb = Math.floor(Math.random() * 81) + 10;
+                cell.textContent = randomProb;
+                cell.classList.add('empty');
+            } else {
+                cell.textContent = '';
+            }
+        });
     }
 
     function checkForWin() {
