@@ -10,7 +10,7 @@ function initBoard() {
     for (let i = 0; i < boardSize; i++) {
         board[i] = [];
         for (let j = 0; j < boardSize; j++) {
-            board[i][j] = { percent: -1, OI: -1 };
+            board[i][j] = { percent: getRandomPercent(), OI: -1 };
             const cell = document.createElement('div');
             cell.className = 'cell empty';
             cell.id = `cell-${i}-${j}`;
@@ -20,6 +20,11 @@ function initBoard() {
     }
     updateBoard();
     updateTurnIndicator();
+}
+
+// Generate a random probability between 10 and 90
+function getRandomPercent() {
+    return (Math.random() * 80 + 10).toFixed(0);
 }
 
 // Update the board display
@@ -48,7 +53,6 @@ function updateBoard() {
 function handleClick(x, y) {
     if (board[x][y].OI === -1) {
         // Set probability and determine color
-        board[x][y].percent = (Math.random() * 80 + 10).toFixed(0);
         board[x][y].OI = Math.random() * 100 < board[x][y].percent ? 1 : 0;
         updateBoard();
         if (checkWin(x, y)) {
@@ -57,6 +61,7 @@ function handleClick(x, y) {
         } else {
             currentTurn = 1 - currentTurn; // Switch turn
             updateTurnIndicator();
+            updateProbabilities(); // Update probabilities for the next turn
         }
     }
 }
@@ -65,6 +70,18 @@ function handleClick(x, y) {
 function updateTurnIndicator() {
     const turnElement = document.getElementById('turnIndicator');
     turnElement.textContent = `Current Turn: ${currentTurn === 0 ? 'White' : 'Black'}`;
+}
+
+// Update probabilities for unselected cells
+function updateProbabilities() {
+    for (let i = 0; i < boardSize; i++) {
+        for (let j = 0; j < boardSize; j++) {
+            if (board[i][j].OI === -1) {
+                board[i][j].percent = getRandomPercent();
+            }
+        }
+    }
+    updateBoard();
 }
 
 // Check if there's a win
