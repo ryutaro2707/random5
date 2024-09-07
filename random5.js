@@ -1,7 +1,3 @@
-/**
- * 
- */
-// ゲームボードを初期化
 let currentPlayer = 0; // 0 for white, 1 for black
 const playerColors = ['white', 'black'];
 let board = Array.from({ length: 10 }, () => Array(10).fill(null));
@@ -34,12 +30,17 @@ function initBoard() {
 // セルがクリックされたときの処理
 function handleClick(event) {
     const cell = event.target;
-    const row = cell.dataset.row;
-    const col = cell.dataset.col;
+    const row = parseInt(cell.dataset.row);
+    const col = parseInt(cell.dataset.col);
 
     if (cell.classList.contains('empty')) {
+        const prob = probabilities[row][col];
+        const randomValue = Math.random() * 100;
+
+        // 確率に基づいて白か黒を決定
+        const newColor = randomValue < prob ? 'black' : 'white';
         cell.classList.remove('empty');
-        cell.classList.add(playerColors[currentPlayer]);
+        cell.classList.add(newColor);
         cell.textContent = '';  // 確率を消す
         board[row][col] = currentPlayer;  // プレイヤーの色をボードに保存
 
@@ -107,8 +108,8 @@ function checkForWin(row, col) {
 function updateProbabilities() {
     const cells = document.querySelectorAll('.cell.empty');
     cells.forEach(cell => {
-        const row = cell.dataset.row;
-        const col = cell.dataset.col;
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
         probabilities[row][col] = Math.floor(Math.random() * 81) + 10;
         cell.textContent = probabilities[row][col] + "%";  // 追加
     });
