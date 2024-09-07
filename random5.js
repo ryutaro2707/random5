@@ -1,113 +1,118 @@
-const boardSize = 10;
-let board = [];
-let currentTurn = 0; // 0: white, 1: black
+let currentPlayer = 0; // 0 for white, 1 for black
+const playerColors = ['white', 'black'];
+let board = Array.from({ length: 10 }, () => Array(10).fill(null));
+let probabilities = Array.from({ length: 10 }, () => Array(10).fill(0));
 
-// Initialize the board
+// ボードの初期化
 function initBoard() {
     const boardElement = document.getElementById('board');
-    boardElement.innerHTML = '';
+    boardElement.innerHTML = ''; // ボードをリセット
 
-    for (let i = 0; i < boardSize; i++) {
-        board[i] = [];
-        for (let j = 0; j < boardSize; j++) {
-            board[i][j] = { percent: getRandomPercent(), OI: -1 };
+    for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
             const cell = document.createElement('div');
             cell.className = 'cell empty';
-            cell.id = `cell-${i}-${j}`;
-            cell.addEventListener('click', () => handleClick(i, j));
+            cell.dataset.row = i;
+            cell.dataset.col = j;
+            cell.addEventListener('click', handleClick);
+
+            // 初期確率設定
+            probabilities[i][j] = Math.floor(Math.random() * 81) + 10;
+            cell.textContent = probabilities[i][j] + "%";
+
             boardElement.appendChild(cell);
         }
     }
-    updateBoard();
     updateTurnIndicator();
 }
+// セルがクリックされたときの処理
+function handleClick(event) {
+    const cell = event.target;
+    const row = parseInt(cell.dataset.row);
+    const col = parseInt(cell.dataset.col);
 
-// Generate a random probability between 10 and 90
-function getRandomPercent() {
-    return (Math.random() * 80 + 10).toFixed(0);
-}
+    if (cell.classList.contains('empty')) {
+        cell.classList.remove('empty');
+        cell.classList.add(playerColors[currentPlayer]);
+        cell.textContent = '';  // 確率を消す
+        board[row][col] = currentPlayer;  // プレイヤーの色をボードに保存
 
-// Update the board display
-function updateBoard() {
-    for (let i = 0; i < boardSize; i++) {
-        for (let j = 0; j < boardSize; j++) {
-            const cell = document.getElementById(`cell-${i}-${j}`);
-            if (board[i][j].OI === -1) {
-                // Display probability for unselected cells
-                cell.textContent = `${board[i][j].percent}%`;
-                cell.className = 'cell empty';
-            } else if (board[i][j].OI === 0) {
-                // Black cell
-                cell.textContent = '';
-                cell.className = 'cell black';
-            } else if (board[i][j].OI === 1) {
-                // White cell
-                cell.textContent = '';
-                cell.className = 'cell white';
-            }
+        // プレイヤーのターンを切り替え
+        if (checkForWin(row, col)) {
+            setTimeout(() => alert(`${playerColors[currentPlayer]} wins!`), 0);
+            return; // 勝者が決まったらゲームを終了
         }
+        currentPlayer = 1 - currentPlayer;
+        updateTurnIndicator();
+
+        // 未埋設のセルの確率を再計算
+        updateProbabilities();
+    } else if (cell.classList.contains('white') || cell.classList.contains('black')) {
+        cell.textContent = probabilities[row][col] + "%";  // 確率を再表示
     }
 }
 
-// Handle cell click
-function handleClick(x, y) {
-    if (board[x][y].OI === -1) {
-        // Set probability and determine color
-        board[x][y].OI = Math.random() * 100 < board[x][y].percent ? 1 : 0;
-        updateBoard();
-        if (checkWin(x, y)) {
-            alert(`${currentTurn === 0 ? 'White' : 'Black'} wins!`);
-            initBoard(); // Restart the game
-        } else {
-            currentTurn = 1 - currentTurn; // Switch turn
-            updateTurnIndicator();
-            updateProbabilities(); // Update probabilities for the next turn
-        }
-    }
-}
-
-// Update turn indicator
-function updateTurnIndicator() {
-    const turnElement = document.getElementById('turnIndicator');
-    turnElement.textContent = `Current Turn: ${currentTurn === 0 ? 'White' : 'Black'}`;
-}
-
-// Update probabilities for unselected cells
-function updateProbabilities() {
-    for (let i = 0; i < boardSize; i++) {
-        for (let j = 0; j < boardSize; j++) {
-            if (board[i][j].OI === -1) {
-                board[i][j].percent = getRandomPercent();
-            }
-        }
-    }
-    updateBoard();
-}
-
-// Check if there's a win
-function checkWin(x, y) {
+// 5つ並んでいるか確認する関数
+function checkForWin(row, col) {
     const directions = [
-        [[0, 1], [0, -1]], // Horizontal
-        [[1, 0], [-1, 0]], // Vertical
-        [[1, 1], [-1, -1]], // Diagonal /
-        [[1, -1], [-1, 1]]  // Diagonal \
+        { x: 1, y: 0 },  // 横
+        { x: 0, y: 1 },  // 縦
+        { x: 1, y: 1 },  // 斜め右下
+        { x: 1, y: -1 }  // 斜め右上
     ];
 
-    for (const direction of directions) {
+    const player = board[row][col];
+
+    for (const { x: dx, y: dy } of directions) {
         let count = 1;
-        for (const [dx, dy] of direction) {
-            let nx = x + dx;
-            let ny = y + dy;
-            while (nx >= 0 && ny >= 0 && nx < boardSize && ny < boardSize && board[nx][ny].OI === board[x][y].OI) {
+
+        // 確認方向の前方をチェック
+        for (let i = 1; i < 5; i++) {
+            const newRow = row + i * dx;
+            const newCol = col + i * dy;
+            if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol] === player) {
                 count++;
-                if (count === 5) return true;
-                nx += dx;
-                ny += dy;
+            } else {
+                break;
             }
         }
+
+        // 確認方向の後方をチェック
+        for (let i = 1; i < 5; i++) {
+            const newRow = row - i * dx;
+            const newCol = col - i * dy;
+            if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol] === player) {
+                count++;
+            } else {
+                break;
+            }
+        }
+
+        // 5つ並んでいるか確認
+        if (count >= 5) {
+            return true;
+        }
     }
+
     return false;
 }
 
-// Initialize the board on page load
+// 確率を再計算する関数
+function updateProbabilities() {
+    const cells = document.querySelectorAll('.cell.empty');
+    cells.forEach(cell => {
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        probabilities[row][col] = Math.floor(Math.random() * 81) + 10;
+        cell.textContent = probabilities[row][col] + "%";  // 追加
+    });
+}
+
+// プレイヤーのターンを表示する
+function updateTurnIndicator() {
+    const indicator = document.getElementById('turnIndicator');
+    indicator.textContent = `Player ${playerColors[currentPlayer]}'s Turn`;
+}
+
+// ページがロードされたときにボードを初期化
 window.onload = initBoard;
