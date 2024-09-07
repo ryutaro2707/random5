@@ -1,114 +1,115 @@
-const boardSize = 10;
-const board = [];
-let currentTurn = 1; // 1 for white, 0 for black
+let board = [];
+let currentTurn = 0; // 0 for white, 1 for black
 
 window.onload = function() {
     initBoard();
     updateTurnIndicator();
-}
+};
 
 function initBoard() {
     const boardElement = document.getElementById('board');
-    boardElement.innerHTML = '';
+    boardElement.innerHTML = ''; // Clear previous board
 
-    for (let i = 0; i < boardSize; i++) {
+    for (let i = 0; i < 10; i++) {
         board[i] = [];
-        for (let j = 0; j < boardSize; j++) {
+        for (let j = 0; j < 10; j++) {
             board[i][j] = {
-                percent: Math.floor(Math.random() * 81) + 10, // Random probability between 10% and 90%
-                occupied: -1
+                color: 'empty',
+                probability: getRandomInt(10, 90)
             };
+
             const cell = document.createElement('div');
             cell.className = 'cell empty';
-            cell.id = `${i}-${j}`;
-            cell.addEventListener('click', () => handleCellClick(i, j));
+            cell.dataset.row = i;
+            cell.dataset.col = j;
+            cell.addEventListener('click', handleCellClick);
+
             boardElement.appendChild(cell);
         }
     }
-
-    updateBoard();
 }
 
-function handleCellClick(x, y) {
-    if (board[x][y].occupied === -1) {
-        const isWhiteTurn = currentTurn === 1;
-        const randomValue = Math.random() * 100;
-
-        if (randomValue < board[x][y].percent) {
-            board[x][y].occupied = 1; // White
-        } else {
-            board[x][y].occupied = 0; // Black
-        }
+function handleCellClick(event) {
+    const row = event.target.dataset.row;
+    const col = event.target.dataset.col;
+    
+    if (board[row][col].color === 'empty') {
+        const probability = board[row][col].probability;
+        board[row][col].color = Math.random() * 100 < probability ? 'black' : 'white';
 
         updateBoard();
-        if (checkWin(x, y)) {
-            setTimeout(() => {
-                alert(`${isWhiteTurn ? 'White' : 'Black'} wins!`);
-                initBoard(); // Restart the game
-            }, 100);
+        if (checkWin(row, col)) {
+            alert(`Player ${currentTurn === 0 ? 'White' : 'Black'} wins!`);
+            initBoard(); // Reset the board for a new game
         } else {
-            currentTurn = 1 - currentTurn; // Switch turns
+            currentTurn = 1 - currentTurn; // Switch turn
             updateTurnIndicator();
         }
     }
 }
 
 function updateBoard() {
-    for (let i = 0; i < boardSize; i++) {
-        for (let j = 0; j < boardSize; j++) {
-            const cell = document.getElementById(`${i}-${j}`);
-            const cellData = board[i][j];
+    const cells = document.getElementsByClassName('cell');
+    for (let cell of cells) {
+        const row = cell.dataset.row;
+        const col = cell.dataset.col;
+        const cellData = board[row][col];
 
-            if (cellData.occupied === -1) {
-                cell.textContent = `${currentTurn === 1 ? 100 - cellData.percent : cellData.percent}%`;
-                cell.className = 'cell empty';
-            } else if (cellData.occupied === 1) {
-                cell.className = 'cell white';
-                cell.textContent = '';
-            } else {
-                cell.className = 'cell black';
-                cell.textContent = '';
-            }
-        }
+        cell.className = `cell ${cellData.color}`;
+        cell.textContent = cellData.color === 'empty' ? cellData.probability + '%' : '';
     }
 }
 
 function updateTurnIndicator() {
     const turnIndicator = document.getElementById('turnIndicator');
-    turnIndicator.textContent = `Current Turn: ${currentTurn === 1 ? 'White' : 'Black'}`;
+    turnIndicator.textContent = `Turn: ${currentTurn === 0 ? 'White' : 'Black'}`;
 }
 
-function checkWin(x, y) {
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function checkWin(row, col) {
     const directions = [
-        [[0, 1], [0, -1]], // Horizontal
-        [[1, 0], [-1, 0]], // Vertical
-        [[1, 1], [-1, -1]], // Diagonal
-        [[1, -1], [-1, 1]] // Anti-diagonal
+        { r: 1, c: 0 }, // horizontal
+        { r: 0, c: 1 }, // vertical
+        { r: 1, c: 1 }, // diagonal down-right
+        { r: 1, c: -1 } // diagonal down-left
     ];
 
-    for (const direction of directions) {
+    const color = board[row][col].color;
+
+    for (let dir of directions) {
         let count = 1;
 
-        for (const [dx, dy] of direction) {
-            for (let step = 1; step < 5; step++) {
-                const newX = x + dx * step;
-                const newY = y + dy * step;
+        for (let step = 1; step < 5; step++) {
+            const newRow = parseInt(row) + dir.r * step;
+            const newCol = parseInt(col) + dir.c * step;
 
-                if (newX < 0 || newX >= boardSize || newY < 0 || newY >= boardSize) {
-                    break;
-                }
+            if (newRow < 0 || newRow >= 10 || newCol < 0 || newCol >= 10) break;
 
-                if (board[newX][newY].occupied === board[x][y].occupied) {
-                    count++;
-                } else {
-                    break;
-                }
-
-                if (count === 5) {
-                    return true;
-                }
+            if (board[newRow][newCol].color === color) {
+                count++;
+            } else {
+                break;
             }
         }
+
+        for (let step = 1; step < 5; step++) {
+            const newRow = parseInt(row) - dir.r * step;
+            const newCol = parseInt(col) - dir.c * step;
+
+            if (newRow < 0 || newRow >= 10 || newCol < 0 || newCol >= 10) break;
+
+            if (board[newRow][newCol].color === color) {
+                count++;
+            } else {
+                break;
+            }
+        }
+
+        if (count >= 5) return true;
     }
+
     return false;
 }
