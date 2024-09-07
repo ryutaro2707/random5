@@ -28,12 +28,15 @@ function updateBoard() {
         for (let j = 0; j < boardSize; j++) {
             const cell = document.getElementById(`cell-${i}-${j}`);
             if (board[i][j].OI === -1) {
+                // Display probability for unselected cells
                 cell.textContent = `${board[i][j].percent}%`;
-                cell.className = `cell ${currentTurn === 0 ? 'empty' : 'empty'}`;
+                cell.className = 'cell empty';
             } else if (board[i][j].OI === 0) {
+                // Black cell
                 cell.textContent = '';
                 cell.className = 'cell black';
             } else if (board[i][j].OI === 1) {
+                // White cell
                 cell.textContent = '';
                 cell.className = 'cell white';
             }
@@ -44,14 +47,15 @@ function updateBoard() {
 // Handle cell click
 function handleClick(x, y) {
     if (board[x][y].OI === -1) {
+        // Set probability and determine color
         board[x][y].percent = (Math.random() * 80 + 10).toFixed(0);
         board[x][y].OI = Math.random() * 100 < board[x][y].percent ? 1 : 0;
         updateBoard();
         if (checkWin(x, y)) {
             alert(`${currentTurn === 0 ? 'White' : 'Black'} wins!`);
-            initBoard();
+            initBoard(); // Restart the game
         } else {
-            currentTurn = 1 - currentTurn;
+            currentTurn = 1 - currentTurn; // Switch turn
             updateTurnIndicator();
         }
     }
