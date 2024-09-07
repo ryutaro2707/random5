@@ -1,96 +1,114 @@
-let board = [];
-let currentPlayer = 1; // 1 for white, 0 for black
+const boardSize = 10;
+const board = [];
+let currentTurn = 1; // 1 for white, 0 for black
+
+window.onload = function() {
+    initBoard();
+    updateTurnIndicator();
+}
 
 function initBoard() {
     const boardElement = document.getElementById('board');
-    board = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => ({
-        state: -1, // -1: unoccupied, 0: black, 1: white
-        percent: Math.floor(Math.random() * 81) + 10
-    })));
-
     boardElement.innerHTML = '';
 
-    for (let i = 0; i < 10; i++) {
-        const row = document.createElement('tr');
-        for (let j = 0; j < 10; j++) {
-            const cell = document.createElement('td');
+    for (let i = 0; i < boardSize; i++) {
+        board[i] = [];
+        for (let j = 0; j < boardSize; j++) {
+            board[i][j] = {
+                percent: Math.floor(Math.random() * 81) + 10, // Random probability between 10% and 90%
+                occupied: -1
+            };
+            const cell = document.createElement('div');
+            cell.className = 'cell empty';
             cell.id = `${i}-${j}`;
-            cell.className = 'cell';
-            cell.addEventListener('click', () => cellClick(i, j));
-            row.appendChild(cell);
+            cell.addEventListener('click', () => handleCellClick(i, j));
+            boardElement.appendChild(cell);
         }
-        boardElement.appendChild(row);
     }
 
     updateBoard();
 }
 
-function updateBoard() {
-    const cells = document.getElementsByClassName('cell');
-    Array.from(cells).forEach(cell => {
-        const [i, j] = cell.id.split('-').map(Number);
-        const cellData = board[i][j];
+function handleCellClick(x, y) {
+    if (board[x][y].occupied === -1) {
+        const isWhiteTurn = currentTurn === 1;
+        const randomValue = Math.random() * 100;
 
-        if (cellData.state === -1) {
-            const probability = currentPlayer === 1
-                ? 100 - cellData.percent
-                : cellData.percent;
-            cell.textContent = probability;
-            cell.style.backgroundColor = 'beige';
-        } else if (cellData.state === 0) {
-            cell.style.backgroundColor = 'black';
-            cell.textContent = '';
-        } else if (cellData.state === 1) {
-            cell.style.backgroundColor = 'white';
-            cell.textContent = '';
+        if (randomValue < board[x][y].percent) {
+            board[x][y].occupied = 1; // White
+        } else {
+            board[x][y].occupied = 0; // Black
         }
-    });
 
-    document.getElementById('turn').textContent = `Current Turn: ${currentPlayer === 1 ? 'White' : 'Black'}`;
-}
-
-function cellClick(i, j) {
-    if (board[i][j].state === -1) {
-        const random = Math.floor(Math.random() * 100) + 1;
-        board[i][j].state = random <= board[i][j].percent ? 1 : 0;
-        board[i][j].percent = 0; // Clear probability after selection
-        currentPlayer = 1 - currentPlayer; // Switch player
-        checkWin();
         updateBoard();
+        if (checkWin(x, y)) {
+            setTimeout(() => {
+                alert(`${isWhiteTurn ? 'White' : 'Black'} wins!`);
+                initBoard(); // Restart the game
+            }, 100);
+        } else {
+            currentTurn = 1 - currentTurn; // Switch turns
+            updateTurnIndicator();
+        }
     }
 }
 
-function checkWin() {
-    // Function to check for five in a row
-    for (let i = 0; i < 10; i++) {
-        for (let j = 0; j < 10; j++) {
-            if (board[i][j].state !== -1) {
-                const state = board[i][j].state;
-                if (checkDirection(i, j, 1, 0, state) || // Horizontal
-                    checkDirection(i, j, 0, 1, state) || // Vertical
-                    checkDirection(i, j, 1, 1, state) || // Diagonal /
-                    checkDirection(i, j, 1, -1, state)) { // Diagonal \
-                    alert(`${state === 1 ? 'White' : 'Black'} wins!`);
-                    initBoard();
-                    return;
-                }
+function updateBoard() {
+    for (let i = 0; i < boardSize; i++) {
+        for (let j = 0; j < boardSize; j++) {
+            const cell = document.getElementById(`${i}-${j}`);
+            const cellData = board[i][j];
+
+            if (cellData.occupied === -1) {
+                cell.textContent = `${currentTurn === 1 ? 100 - cellData.percent : cellData.percent}%`;
+                cell.className = 'cell empty';
+            } else if (cellData.occupied === 1) {
+                cell.className = 'cell white';
+                cell.textContent = '';
+            } else {
+                cell.className = 'cell black';
+                cell.textContent = '';
             }
         }
     }
 }
 
-function checkDirection(row, col, rowDir, colDir, state) {
-    let count = 1;
-    for (let i = 1; i < 5; i++) {
-        const newRow = row + rowDir * i;
-        const newCol = col + colDir * i;
-        if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol].state === state) {
-            count++;
-        } else {
-            break;
-        }
-    }
-    return count >= 5;
+function updateTurnIndicator() {
+    const turnIndicator = document.getElementById('turnIndicator');
+    turnIndicator.textContent = `Current Turn: ${currentTurn === 1 ? 'White' : 'Black'}`;
 }
 
-window.onload = initBoard;
+function checkWin(x, y) {
+    const directions = [
+        [[0, 1], [0, -1]], // Horizontal
+        [[1, 0], [-1, 0]], // Vertical
+        [[1, 1], [-1, -1]], // Diagonal
+        [[1, -1], [-1, 1]] // Anti-diagonal
+    ];
+
+    for (const direction of directions) {
+        let count = 1;
+
+        for (const [dx, dy] of direction) {
+            for (let step = 1; step < 5; step++) {
+                const newX = x + dx * step;
+                const newY = y + dy * step;
+
+                if (newX < 0 || newX >= boardSize || newY < 0 || newY >= boardSize) {
+                    break;
+                }
+
+                if (board[newX][newY].occupied === board[x][y].occupied) {
+                    count++;
+                } else {
+                    break;
+                }
+
+                if (count === 5) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
