@@ -53,48 +53,48 @@ function handleClick(event) {
 }
 
 // 5つ並んでいるか確認する関数
-function checkForWin(row, col) {
-    const directions = [
-        { x: 1, y: 0 },  // 横
-        { x: 0, y: 1 },  // 縦
-        { x: 1, y: 1 },  // 斜め右下
-        { x: 1, y: -1 }  // 斜め右上
-    ];
-
-    const player = board[row][col];
-
-    for (const { x: dx, y: dy } of directions) {
-        let count = 1;
-
-        // 確認方向の前方をチェック
-        for (let i = 1; i < 5; i++) {
-            const newRow = row + i * dx;
-            const newCol = col + i * dy;
-            if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol] === player) {
-                count++;
-            } else {
-                break;
-            }
-        }
-
-        // 確認方向の後方をチェック
-        for (let i = 1; i < 5; i++) {
-            const newRow = row - i * dx;
-            const newCol = col - i * dy;
-            if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol] === player) {
-                count++;
-            } else {
-                break;
-            }
-        }
-
-        // 5つ並んでいるか確認
-        if (count >= 5) {
-            return true;
+function checkWinCondition() {
+    const cells = document.querySelectorAll('.cell');
+    const board = [];
+    for (let i = 0; i < 10; i++) {
+        board[i] = [];
+        for (let j = 0; j < 10; j++) {
+            const cell = cells[i * 10 + j];
+            board[i][j] = cell.classList.contains('white') ? 1 : (cell.classList.contains('black') ? 2 : 0);
         }
     }
 
-    return false;
+    function isWinningLine(line) {
+        return line.every(cell => cell === line[0] && cell !== 0);
+    }
+
+    function checkDirection(row, col, dRow, dCol) {
+        const line = [];
+        for (let k = 0; k < 5; k++) {
+            const r = row + k * dRow;
+            const c = col + k * dCol;
+            if (r < 0 || r >= 10 || c < 0 || c >= 10) return false;
+            line.push(board[r][c]);
+        }
+        return isWinningLine(line);
+    }
+
+    function checkWin() {
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 10; j++) {
+                if (
+                    checkDirection(i, j, 0, 1) ||  // Horizontal
+                    checkDirection(i, j, 1, 0) ||  // Vertical
+                    checkDirection(i, j, 1, 1) ||  // Diagonal /
+                    checkDirection(i, j, 1, -1)    // Diagonal \
+                ) {
+                    alert((currentTurn === 0 ? 'White' : 'Black') + ' wins!');
+                    return;
+                }
+            }
+        }
+    }
+    checkWin();
 }
 
 // 確率を再計算する関数
