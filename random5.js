@@ -1,125 +1,87 @@
-let currentPlayer = 0; // 0 for white, 1 for black
-const playerColors = ['white', 'black'];
-let board = Array.from({ length: 10 }, () => Array(10).fill(null));
-let probabilities = Array.from({ length: 10 }, () => Array(10).fill(0));
+document.addEventListener('DOMContentLoaded', (event) => {
+    const boardSize = 10;
+    const board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(-1));
+    let currentPlayer = 1; // 1 for white, 0 for black
 
-// ボードの初期化
-function initBoard() {
-    const boardElement = document.getElementById('board');
-    boardElement.innerHTML = ''; // ボードをリセット
+    const boardContainer = document.getElementById('board');
 
-    for (let i = 0; i < 10; i++) {
-        for (let j = 0; j < 10; j++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell empty';
-            cell.dataset.row = i;
-            cell.dataset.col = j;
-            cell.addEventListener('click', handleClick);
-
-            // 初期確率設定
-            probabilities[i][j] = Math.floor(Math.random() * 81) + 10;
-            cell.textContent = probabilities[i][j] + "%";
-
-            boardElement.appendChild(cell);
+    function initBoard() {
+        boardContainer.innerHTML = '';
+        for (let row = 0; row < boardSize; row++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('row');
+            for (let col = 0; col < boardSize; col++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.row = row;
+                cell.dataset.col = col;
+                cell.addEventListener('click', () => handleClick(row, col));
+                rowDiv.appendChild(cell);
+            }
+            boardContainer.appendChild(rowDiv);
         }
-    }
-
-    updateTurnIndicator();
-}
-
-// セルがクリックされたときの処理
-function handleClick(event) {
-    const cell = event.target;
-    const row = parseInt(cell.dataset.row);
-    const col = parseInt(cell.dataset.col);
-
-    if (cell.classList.contains('empty')) {
-        const prob = probabilities[row][col];
-        const randomValue = Math.random() * 100;
-
-        // 確率に基づいて白か黒を決定
-        const newColor = randomValue < prob ? 'black' : 'white';
-        cell.classList.remove('empty');
-        cell.classList.add(newColor);
-        cell.textContent = '';  // 確率を消す
-        board[row][col] = currentPlayer;  // プレイヤーの色をボードに保存
-
-        // プレイヤーのターンを切り替え
-        if (checkForWin(row, col)) {
-            setTimeout(() => alert(`${playerColors[currentPlayer]} wins!`), 0);
-            return; // 勝者が決まったらゲームを終了
-        }
-        currentPlayer = 1 - currentPlayer;
-        updateTurnIndicator();
-
-        // 未埋設のセルの確率を再計算
         updateProbabilities();
-    } else if (cell.classList.contains('white') || cell.classList.contains('black')) {
-        cell.textContent = probabilities[row][col] + "%";  // 確率を再表示
     }
-}
 
-// 5つ並んでいるか確認する関数
-function checkForWin(row, col) {
-    const directions = [
-        { x: 1, y: 0 },  // 横
-        { x: 0, y: 1 },  // 縦
-        { x: 1, y: 1 },  // 斜め右下
-        { x: 1, y: -1 }  // 斜め右上
-    ];
-
-    const player = board[row][col];
-
-    for (const { x: dx, y: dy } of directions) {
-        let count = 1;
-
-        // 確認方向の前方をチェック
-        for (let i = 1; i < 5; i++) {
-            const newRow = row + i * dx;
-            const newCol = col + i * dy;
-            if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol] === player) {
-                count++;
+    function handleClick(row, col) {
+        if (board[row][col] === -1) {
+            const randomProb = Math.floor(Math.random() * 81) + 10;
+            const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
+            if (Math.random() * 100 < randomProb) {
+                board[row][col] = currentPlayer;
+                cell.classList.remove('empty');
+                cell.classList.add(currentPlayer === 1 ? 'white' : 'black');
+                cell.textContent = '';  // Remove probability display
             } else {
-                break;
+                cell.classList.add('empty');
+                cell.textContent = '';  // Remove probability display
             }
-        }
-
-        // 確認方向の後方をチェック
-        for (let i = 1; i < 5; i++) {
-            const newRow = row - i * dx;
-            const newCol = col - i * dy;
-            if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 10 && board[newRow][newCol] === player) {
-                count++;
-            } else {
-                break;
-            }
-        }
-
-        // 5つ並んでいるか確認
-        if (count >= 5) {
-            return true;
+            updateProbabilities();  // Update probabilities for all cells
+            checkForWin(row, col);
+            currentPlayer = 1 - currentPlayer; // Switch player
         }
     }
 
-    return false;
-}
+    function updateProbabilities() {
+        // No longer needed, probabilities are now only used for determining cell state
+    }
 
-// 確率を再計算する関数
-function updateProbabilities() {
-    const cells = document.querySelectorAll('.cell.empty');
-    cells.forEach(cell => {
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-        probabilities[row][col] = Math.floor(Math.random() * 81) + 10;
-        cell.textContent = probabilities[row][col] + "%";  // 追加
-    });
-}
+    function checkForWin(row, col) {
+        const directions = [
+            { dr: 0, dc: 1 },  // horizontal
+            { dr: 1, dc: 0 },  // vertical
+            { dr: 1, dc: 1 },  // diagonal (down-right)
+            { dr: 1, dc: -1 }  // diagonal (down-left)
+        ];
 
-// プレイヤーのターンを表示する
-function updateTurnIndicator() {
-    const indicator = document.getElementById('turnIndicator');
-    indicator.textContent = `Player ${playerColors[currentPlayer]}'s Turn`;
-}
+        for (let { dr, dc } of directions) {
+            let count = 1;
+            for (let i = 1; i < 5; i++) {
+                const r = row + dr * i;
+                const c = col + dc * i;
+                if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
+                if (board[r][c] === currentPlayer) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            for (let i = 1; i < 5; i++) {
+                const r = row - dr * i;
+                const c = col - dc * i;
+                if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
+                if (board[r][c] === currentPlayer) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            if (count >= 5) {
+                setTimeout(() => alert(`${currentPlayer === 1 ? 'White' : 'Black'} wins!`), 0);
+                return;
+            }
+        }
+    }
 
-// ページがロードされたときにボードを初期化
-window.onload = initBoard;
+    initBoard();
+});
